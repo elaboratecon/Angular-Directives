@@ -7,15 +7,24 @@ app.directive('projectInfo', function() {
     },
     link: function (scope, elem, attrs) {
       
-      var stage = angular.element('#featuredProject');
-      var stageStatus = scope.stageClosed;
-
-      var closeStage = function() {
-        stage.fadeOut(150);
-        stage.animate({height: '0px'}, 150, function(){});
-        stageStatus = true;
+      // Preload project images for better height calculations
+      var preloadImages = function() {
+        for(i = 0; i < scope.projects.length; i++) {
+          preloadImage(scope.projects[i].imgURL);
+        }
+      };    
+      var preloadImage = function(url) {
+          var img=new Image();
+          img.src=url;
       };
       
+      // Set variables
+      var stage = angular.element('#featuredProject');
+      var closeButton = angular.element('#closeButton');
+      var stageClosed = scope.stageClosed;
+      var resetIndex = scope.index;
+      
+      // Generate list of project technologies
       var listTechnologies = function(index){
         var projectTechnologies = scope.projects[index].technologies;
         var lineItems = '';
@@ -27,28 +36,73 @@ app.directive('projectInfo', function() {
       
       var loadStage = function(index) {
         stage.html(
-          '<h3>'+scope.projects[index].name+'</h3>'+
-          '<article>'+scope.projects[index].description+'</article>'+
-          '<ul>'+listTechnologies(index)+'</ul>'
+          '<article class="group">'+
+          '<div class="imgWrapper"><img src="'+scope.projects[index].imgURL+'" title="'+scope.projects[index].name+'" /></div>'+
+          '<h4>'+scope.projects[index].name+'</h4>'+
+          scope.projects[index].description+
+          '<ul>'+listTechnologies(index)+'</ul>'+
+          '</article>'
         );
       };
       
+      var closeStage = function() {
+        closeButton.animate({opacity: 0, top: '-10px'}, 500, 'easeInOutExpo', function(){});
+        var curHeight = stage.height();
+        stage.height(curHeight).animate({height: 0, opacity: 0}, 800, 'easeInOutExpo', function (){
+          angular.element('article').css('display', 'none');
+        });
+        stageClosed = true;
+      };
+      
+      var getCurrentStageHeight = function() {
+        return stage.height();
+      };
+      
+      var getNewStageHeight = function() {
+        stage.css('height', 'auto');
+        return stage.innerHeight();
+      };
+      
       var showProject = function(index) {
-        if (stageStatus == true) {
-          loadStage(index);
-          stage.fadeIn(150);
-          stage.animate({height: '500px'}, 150, function(){});
-          stageStatus = false;
-        } else {
-          stage.fadeOut(150);
-          stage.animate({height: '0px'}, 150, function(){
+        var curHeight = getCurrentStageHeight();
+        var newHeight = null;
+        if (stageClosed == true) {
+          angular.element('html, body').animate({
+            scrollTop: angular.element('#featuredProject')
+            .offset()
+            .top -85 
+          }, 700, 'easeInOutExpo', function(){
             loadStage(index);
+            newHeight = getNewStageHeight();
+            angular.element('article').css('display', 'block');
+            stage.height(0).animate({
+              height: newHeight, 
+              opacity: 1
+            }, 800, 'easeInOutExpo', function (){
+              closeButton.animate({opacity: .5, top: '10px'}, 500, 'easeInOutExpo', function(){});
+            });
           });
-          stageStatus = true;
-          
-          stage.fadeIn(150);
-          stage.animate({height: '500px'}, 150, function(){});
-          stageStatus = false;
+          stageClosed = false;
+          currentIndex = index;
+        } else if (index != currentIndex) {
+          var curHeight = getCurrentStageHeight();
+          angular.element('html, body').animate({
+            scrollTop: angular.element('#featuredProject')
+            .offset()
+            .top -85 
+          }, 700, 'easeInOutExpo', function(){
+            stage.animate({
+              opacity: 0
+            }, 200, 'easeInOutExpo', function(){
+              loadStage(index);
+              newHeight = getNewStageHeight();
+              stage.height(curHeight).animate({
+                height: newHeight, 
+                opacity: 1
+              }, 500, 'easeInOutExpo', function (){});
+            });
+          });
+          currentIndex = index;
         }
       };
       
@@ -57,8 +111,20 @@ app.directive('projectInfo', function() {
           showProject(scope.index);
         }
       });
-
+      
+      scope.$watch('reopenIndex', function() {
+        if(scope.reopenIndex != null) {
+          showProject(scope.reopenIndex);
+        }
+      });
+      
+      closeButton.bind('click', closeStage);
+      
+      var navItem = angular.element('#projectsNav');
+      
+      preloadImages();
+      
     },
-    template: '<nav role="navigation" id="projectsNav"><ul><li ng-repeat="project in projects" class="{{ project.className }} clickable" ng-click="click($index)">{{ project.name }}</li></ul></nav>'
+    template: '<button type="button" class="close" data-dismiss="alert" aria-label="Close" id="closeButton"><span aria-hidden="true">x</span></button><nav role="navigation" id="projectsNav"><ul><li ng-repeat="project in projects" class="{{ project.className }} clickable" ng-click="click($index)">{{ project.name }}</li></ul></nav>'
   };
 });
