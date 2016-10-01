@@ -11,7 +11,7 @@ app.directive('aboutMeToggle', function (){
       var toggleSplash = function(){
         if(scope.myValue==false){
           initText.fadeOut(150, function(){
-            aboutMe.animate({marginLeft: '-=100%'}, 900, function(){
+            aboutMe.animate({marginLeft: '-=100%'}, 1100, "easeInOutExpo", function(){
               moreText.fadeIn(150);
             });
           });
@@ -19,7 +19,7 @@ app.directive('aboutMeToggle', function (){
           scope.myValue = true;
         } else {
           moreText.fadeOut(150, function(){
-            aboutMe.animate({marginLeft: '+=100%'}, 900, function(){
+            aboutMe.animate({marginLeft: '+=100%'}, 1100, "easeInOutExpo", function(){
               initText.fadeIn(150);
             });
           });
